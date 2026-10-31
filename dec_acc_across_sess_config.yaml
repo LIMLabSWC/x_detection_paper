@@ -1,0 +1,14 @@
+sessnames:
+ - 'DO79_240116' 
+ - 'DO79_240117' 
+ - 'DO79_240118'
+ - 'DO79_240119'
+#  - 'DO81_240416'
+ - 'DO81_240417'
+ - 'DO81_240418'
+ - 'DO81_240419'
+
+session_topology_path: 'X:\Dammy\Xdetection_mouse_hf_test\session_topology_ephys_2401.csv'
+pkldir: 'X:\Dammy\ephys_concat_pkls'
+
+sess_dict_pkl_path: 'D:\ephys\DO79_DO81_initial_fam_sessions.pkl'

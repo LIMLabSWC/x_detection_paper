@@ -1,0 +1,59 @@
+# To check more avaialble options see:
+# https://matplotlib.org/tutorials/introductory/customizing.html
+
+
+
+# FIGURE 
+figure.labelsize: 7
+figure.titlesize: 7
+
+# AXES
+axes.titlesize : 7
+axes.titlepad: 2
+axes.labelsize : 6
+axes.linewidth : 0.5
+axes.spines.top : False
+axes.spines.right : False
+axes.spines.bottom : True
+axes.spines.left : True
+axes.xmargin : 0.1
+axes.ymargin : 0.1
+
+# GRID
+axes.grid : False
+grid.alpha : 0.7
+grid.linestyle : --
+grid.linewidth : 0.6
+
+# LINES
+# axes.prop_cycle : cycler('color', ['335C67','9e2a2b','e09f3e','540b0e','fff3b0','dbd3c9']) #hex colours
+lines.linewidth : 1
+lines.markeredgewidth : 0.0
+
+# SCATTER PLOT
+scatter.marker : .
+
+# BOX PLOT
+boxplot.patchartist : False
+boxplot.medianprops.color : 'darkred'
+boxplot.meanprops.markerfacecolor : 'darkred'
+boxplot.boxprops.linewidth : 0.5
+boxplot.medianprops.linewidth : 0.5
+boxplot.capprops.linewidth : 0.5
+boxplot.flierprops.linewidth: 0.5
+
+# TICKS
+xtick.labelsize : 6
+xtick.direction : in
+ytick.labelsize : 6
+ytick.direction : in
+ytick.major.pad : 6
+axes.unicode_minus : False
+
+# FIGURE OUTPUT 
+figure.figsize  : 4,3
+savefig.format : pdf
+
+# LEGEND
+legend.fontsize : 6
+legend.handlelength: 1
