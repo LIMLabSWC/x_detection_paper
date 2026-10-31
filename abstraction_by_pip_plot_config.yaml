@@ -1,0 +1,63 @@
+animals:
+  - DO79
+  - DO80
+  - DO81
+  - DO95
+  - DO96
+  - DO97
+
+pkl_filts:
+  # - 'batch_resps_ephys_2401'
+  - 'batch_abstraction_by_pip_resps_ephys_no_zscore_2401_2504'
+
+window: [-0.1, 0.25]
+plot_window: [-0.25, 1]
+decoding_window: [[0.5,1]]
+
+normdev_decoding_kwargs:
+  pips2decode: [['A-0', 'A-1', 'A-2']]
+  decoding_kwargs:
+    dec_kwargs:
+      cv_folds: 4  
+      n_runs: 50
+
+pips_2_plot:
+  - A-0
+  - B-0
+  - C-0
+  - D-0
+  - A-1
+  - B-1
+  - C-1
+  - D-1
+  - A-2
+  - B-2
+  - C-2
+  - D-2
+
+  # - trial_start
+psth_figdir: 'X:\Dammy\figures\psth_plots_aggr_sessions_ephys_2401_2504'
+decoding_figdir: 'X:\Dammy\figures\decoding_plots_aggr_sessions_ephys_2401_2504'
+plot_suffix: psth.pdf
+psth_plot_kwargs:
+  sort_window: [0.1, 0.25]
+  plot_window: [-0.25, 1]
+  im_kwargs:
+    vcenter: 0
+    vmin: -0.75
+    vmax: 0.75
+    cmap: RdBu_r
+ts_mean_plot_kwargs:
+  plot_window: [-0.25, 1.5]
+  im_kwargs:
+    lw: 0.5
+
+by_animals: false
+session_topology_paths: 
+  - X:\Dammy\Xdetection_mouse_hf_test\session_topology_ephys_2504.csv
+  - X:\Dammy\Xdetection_mouse_hf_test\session_topology_ephys_2401.csv
+sess_top_query: 'sess_order=="main"'
+td_df_query: 'Stage==4'
+cond_filter: "dev_ABBA1"
+overwrite: true
+plot_config_path: null

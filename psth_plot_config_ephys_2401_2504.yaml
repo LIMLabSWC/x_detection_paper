@@ -1,0 +1,76 @@
+animals:
+  - DO79
+  - DO80
+  - DO81
+  - DO95
+  - DO96
+  - DO97
+
+pkl_filts:
+  - 'batch_patt_resps_ephys_2401'
+  - 'batch_patt_resps_ephys_2504'
+
+window: [-0.5, 1.5]
+plot_window: [-0.25, 1]
+
+rare_freq_decoding:
+  pips2decode: [['A-0_rare', 'A-0_frequent']]
+  decoding_window: [[0,1]]
+
+  decoding_kwargs:
+    dec_kwargs:
+      cv_folds: 0
+      n_runs: 100
+
+rare_freq_pca:
+  pcas2plot: [[3, 1, 0]]
+  plot_kwargs:
+    plot_out_event: false
+    t_end: 1
+  fig_kwargs:
+    figsize: [2.5,1.8]
+
+  
+stim_decoding:
+  pips2decode: [['A-0', 'X'],['A-0','base']]
+  decoding_window: [[0, 0.25],[0, 0.25]]
+
+  decoding_kwargs:
+    dec_kwargs:
+      cv_folds: 10  
+      n_runs: 10
+
+pips_2_plot:
+  - A-0
+  - base
+  - X
+  # - trial_start
+
+psth_figdir: 'X:\Dammy\figures\psth_plots_aggr_sessions_ephys_2401_2504'
+decoding_figdir: 'X:\Dammy\figures\decoding_plots_aggr_sessions_ephys_2401_2504'
+pca_figdir: 'X:\Dammy\figures\pca_plots_aggr_sessions_ephys_2401_2504'
+
+plot_suffix: psth.pdf
+psth_plot_kwargs:
+  sort_window: [0.1, 1]
+  plot_window: [-0.25, 1]
+  im_kwargs:
+    vcenter: 0
+    vmin: -0.5
+    vmax: 0.5
+    cmap: RdBu_r
+ts_mean_plot_kwargs:
+  plot_window: [-0.25, 1]
+  im_kwargs:
+    lw: 0.5
+
+
+by_animals: false
+session_topology_path: 
+  - X:\Dammy\Xdetection_mouse_hf_test\session_topology_ephys_2504.csv
+  - X:\Dammy\Xdetection_mouse_hf_test\session_topology_ephys_2401.csv
+sess_top_query: 'sess_order=="main" & date >= 240219'
+td_df_query: 'Stage>=3'
+# cond_filter: ""
+overwrite: true
+plot_config_path: null

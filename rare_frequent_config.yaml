@@ -1,0 +1,26 @@
+# ===== Required =====
+sess_dict: "/path/to/pupil_sess_dict.joblib"
+sessname: "RS02_250415"
+
+# ===== Pupil alignment =====
+event: "A"           # A, X, Start, none
+
+# ===== BOCPD parameters =====
+hazard: 0.015        # ~1 / mean block length
+rmax: 200            # max run length to track
+
+# ===== Pupil summary window (seconds relative to event) =====
+pupil_window:
+  start: 1.0
+  end: 2.0
+
+baseline_window:
+  start: -0.5
+  end: 0.0
+
+# ===== Regression =====
+ridge_alpha: 10.0
+cv_folds: 5
+
+# ===== Output =====
+out_csv: "RS02_250415_rare_model_timeseries.csv"
