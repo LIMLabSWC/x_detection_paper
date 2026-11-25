@@ -18,9 +18,11 @@ from analysis_scripts.rule_decoding_funcs import ccgp_session_both, compute_ccgp
     compute_std_decode_null, plot_time_resolved_decoding, plot_all_sessions_mean_sem, time_window_averaged_LDA, \
     rename_dict_keys, plot_axis_emergence, window_index_bounds, compute_axis_alignment_timecourse
 
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+
 # Hardcoded parameters (update as needed)
-plot_config_path = Path(r"H:\ephys\abcd_vs_abba_config.yaml")
-aggr_savedir = Path(r"X:\Dammy\aggr_savedir")
+plot_config_path = DATA_DIR / "configs" / "fig05b_abcd_vs_abba.yaml"
+aggr_savedir = DATA_DIR / "aggregate_cache"
 
 # Set up stylesheet and line styling
 plt.style.use('../figure_stylesheet.mplstyle')
@@ -44,7 +46,7 @@ args = DummyArgs()
 # Initialize AggregateSession
 abcd_vs_abba = AggregateSession(None, args, plot_config, ['A-0', 'A-1', 'A-2', 'A-3'])
 abcd_vs_abba.aggregate_mean_sess_responses(
-    concat_savename=aggr_savedir / 'abcd_vs_abba_means.joblib',
+    concat_savename=aggr_savedir / 'fig05b_abcd_vs_abba_response_aggregate.joblib',
     reload_save=True,
     zscore_flag=True,
 )
@@ -143,7 +145,10 @@ pd.DataFrame(pnts_list,index=lbls).to_csv('fig_5h_plot_data.csv')
 # Regular decoding:
 
 # 1. Load pre-aggregated responses
-all_resps_path = Path(r"D:\ephys\ABCD_ABBA_no_zscore_ephys_2401_2504.joblib")
+all_resps_path = (
+    DATA_DIR / "ephys_responses"
+    / "fig05_abcd_vs_abba_responses_ephys_2401_2504.joblib"
+)
 abcd_vs_abba_resp_dict = joblib.load(all_resps_path)
 out_dir = Path("figs")
 
@@ -809,4 +814,3 @@ plot_all_sessions_mean_sem(
 
 pd.DataFrame(dec_results['rule']['auc']).to_csv(f'fig_5l_rule_decodability.csv')
 pd.DataFrame(N['rule']['auc'].mean(axis=0)).to_csv(f'fig_5l_rule_decodability_null.csv')
-

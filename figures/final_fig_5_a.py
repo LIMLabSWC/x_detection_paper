@@ -1,7 +1,20 @@
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
+import random
+import pandas as pd
+import numpy as np
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
 from pathlib import Path
 from copy import copy
-import numpy as np
-import pandas as pd
+from itertools import combinations
 import yaml
 import matplotlib.pyplot as plt
 from cycler import cycler
@@ -10,11 +23,14 @@ import statsmodels.formula.api as smf
 from scipy.stats import ttest_ind, sem
 from statsmodels.stats.multitest import multipletests
 
-from analysis_scripts.aggregate_psth_analysis import AggregateSession
-from analysis_scripts.plot_funcs import format_axis
+from aggregate_psth_analysis import AggregateSession
+from plot_funcs import format_axis
+
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+
 # Hardcoded parameters
-plot_config_path = Path(r"H:\ephys\abstraction_plot_config.yaml")
-aggr_savedir = Path(r"X:\Dammy\aggr_savedir_261120")
+plot_config_path = DATA_DIR / "configs" / "fig05a_abstraction.yaml"
+aggr_savedir = DATA_DIR / "aggregate_cache"
 pips_for_dist = 'ABCDE'
 
 
@@ -44,7 +60,7 @@ dev_ABAD_dev_ABCD = AggregateSession(None, args, plot_config, ['A-0', 'A-1', 'A-
 # Replicate exact response aggregation, filtering, and trimming
 dev_ABAD_dev_ABCD.aggregate_mean_sess_responses(
     conds=['normal', 'dev_ABCD1', 'dev_ABBA1'],
-    concat_savename=aggr_savedir / 'A-0_A-1_A-2_trial_normed_trimmed_A-0.joblib',
+    concat_savename=aggr_savedir / 'fig05a_trial_normed_response_aggregate.joblib',
     reload_save=True,
     zscore_flag=True,
     filt_by_trial_num=True,
@@ -180,22 +196,25 @@ analysis_rows = []
 for ei, event_dists in enumerate(dists_by_ref_event[0]):
     event_dists = np.array(event_dists)
     deviant_label = f'Condition_{ei + 1}'
-    n_sessions, n_positions = event_dists.shape
-    for sess_idx in range(n_sessions):
-        animal_id = animal_per_sess[sess_idx]
+    n_animals, n_positions = event_dists.shape
+    for animal_idx in range(n_animals):
+        animal_id = all_animals[animal_idx]
         for pos_idx in range(n_positions):
             analysis_rows.append({
                 'animal_id': animal_id,
-                'session_id': f'session_{sess_idx}',
-                'animal_session': f'{animal_id}_session_{sess_idx}', # Combined hierarchical group
+                'session_id': f'session_{animal_idx}',
+                'animal_session': f'{animal_id}_session_{animal_idx}', # Combined hierarchical group
                 'pattern_position': str(pos_idx + 1),
                 'deviant_type': deviant_label,
-                'cosine_distance': event_dists[sess_idx, pos_idx]
+                'cosine_distance': event_dists[animal_idx, pos_idx]
             })
 
 df = pd.DataFrame(analysis_rows)
 
 # Mixed-effects interaction model grouped by both animal and session (nested/combined)
+random.seed(SEED)
+np.random.seed(SEED)
+
 formula = "cosine_distance ~ C(deviant_type) * C(pattern_position)"
 model = smf.mixedlm(formula, data=df, groups=df["animal_session"],)
 results = model.fit(method="powell", maxiter=2000, reml=False)

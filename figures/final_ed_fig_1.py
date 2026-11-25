@@ -2,6 +2,8 @@
 # Standalone Code to Reproduce Panels a and d–h for Fig 1 Script
 # =========================================================================
 
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -9,7 +11,11 @@ import matplotlib.ticker as tck
 from analysis_scripts.plot_funcs import format_axis
 from analysis_scripts.plot_time_resolved_decoding import unique_mice
 
-all_sess_td_df = pd.read_hdf('all_td_df_4_beh.h5')
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+
+all_sess_td_df = pd.read_hdf(
+    DATA_DIR / "trial_tables" / "fig01_supp_behavior_trials.h5"
+)
 assert isinstance(all_sess_td_df, pd.DataFrame)
 
 # Ensure good trial filter is defined
@@ -66,7 +72,9 @@ for eg_mouse in unique_mice[:1]:
 # -------------------------------------------------------------------------
 # Panel c: Hazard Rate
 # -------------------------------------------------------------------------
-hazard_rate_td_df = pd.read_hdf('hazard_rate_td_df.h5')
+hazard_rate_td_df = pd.read_hdf(
+    DATA_DIR / "trial_tables" / "supp_fig01_hazard_rate_trials.h5"
+)
 assert isinstance(hazard_rate_td_df, pd.DataFrame)
 
 # 1. Total initiated trials (at-risk pool at t=0)
@@ -203,4 +211,3 @@ for metric, (x_label, fname) in time_to_metrics.items():
             format_axis(ax_t)
             fig_t.set_layout_engine('tight')
             fig_t.show()
-

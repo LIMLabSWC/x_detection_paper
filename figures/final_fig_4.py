@@ -18,6 +18,8 @@ from xdetectioncore.io_utils import extract_date, load_response_dfs
 from xdetectioncore.plotting import format_axis
 from analysis_scripts.aggregate_psth_analysis import AggregateSession
 
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+
 
 if __name__ == '__main__':
 
@@ -29,7 +31,7 @@ if __name__ == '__main__':
     # Panel e: Time-Series Progression for All Non-Inhibition Sessions
     # =========================================================================
 
-    aggr_savedir = Path(r"X:\Dammy\aggr_savedir")
+    aggr_savedir = DATA_DIR / "aggregate_cache"
     pkl_dir = aggr_savedir
 
 
@@ -40,7 +42,11 @@ if __name__ == '__main__':
 
     args = DummyArgs()
 
-    plot_config_path = Path(r'../analysis_configs/rare_freq_plot_configs.yaml')
+    plot_config_path = (
+        Path(__file__).resolve().parents[1]
+        / "analysis_configs"
+        / "rare_freq_plot_configs.yaml"
+    )
 
     assert plot_config_path.is_file()
     with open(plot_config_path, 'r') as f:
@@ -50,7 +56,7 @@ if __name__ == '__main__':
 
     rare_freq_resps = AggregateSession(None, args, plot_config, ['A-0'] * len(conds))
     rare_freq_resps.aggregate_mean_sess_responses(conds=conds,
-                                                  concat_savename=aggr_savedir / 'A-0_rare_A-0_frequent_early_late_sliding_block_1_only.joblib',
+                                                  concat_savename=aggr_savedir / 'fig04_rare_frequency_response_aggregate.joblib',
                                                   reload_save=True,
                                                   zscore_flag=True)
     rare_freq_resps.pca_pseudo_pop(pca_name='rare_freq_early_late_pca', standardise=False)
@@ -233,10 +239,13 @@ if __name__ == '__main__':
         # fig.savefig(Path('') / f'pc{target_pc_idx + 1}_procrustes_trajectory_alignment_analysis.pdf', dpi=300)
 
     # Data paths for Opto dataset
-    paper_data_dir = Path(r"X:\Xdetection_data\data_for_paper")
-    A_by_cond_path = paper_data_dir / "fig2_opto_A_by_cond.h5"
-    all_td_df_path = paper_data_dir / "fig2_opto_all_td_df.h5"
-    opto_sess_dict_path = paper_data_dir / "opto_sess_dict.json"
+    A_by_cond_path = (
+        DATA_DIR / "pupil_responses" / "fig02_opto_A_pupil_by_condition.h5"
+    )
+    all_td_df_path = DATA_DIR / "trial_tables" / "fig04_opto_trials.h5"
+    opto_sess_dict_path = (
+        DATA_DIR / "session_metadata" / "fig02_fig04_opto_sessions_by_state.json"
+    )
 
     # Load condition pupil response DataFrames
     A_by_cond = load_response_dfs(A_by_cond_path)
@@ -480,8 +489,12 @@ if __name__ == '__main__':
     # =========================================================================
 
     # Load the required response dictionaries using A_pre_by_cond and X_pre_by_cond
-    A_pre_by_cond = load_response_dfs("fig4_opto_A_pre_by_cond.h5")
-    X_pre_by_cond = load_response_dfs( "fig4_opto_X_pre_by_cond.h5")
+    A_pre_by_cond = load_response_dfs(
+        DATA_DIR / "pupil_responses" / "fig04_opto_A_prestim_by_condition.h5"
+    )
+    X_pre_by_cond = load_response_dfs(
+        DATA_DIR / "pupil_responses" / "fig04_opto_X_prestim_by_condition.h5"
+    )
 
     conds_by_expected_h = {
         'unexpected': ['frequent_prate_10'],  # mid
