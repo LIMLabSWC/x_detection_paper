@@ -13,23 +13,27 @@ from xdetectioncore.pupil.pupil_analysis_funcs import add_name_to_response_dfs
 from xdetectioncore.behaviour import get_all_cond_filts
 from analysis_scripts.pupil_analysis_funcs import PupilCondAnalysis
 
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+
 
 if __name__ == '__main__':
 
     plt.style.use('../figure_stylesheet.mplstyle')
 
-    # Data paths for Opto dataset
-    paper_data_dir = Path(r"X:\Xdetection_data\data_for_paper")
-    # paper_data_dir = Path(r"X:\Dammy\data_for_paper_backup")
-
     ###################################################################################################################
     ##### MUSCIMOL ################################################################################################
     ###################################################################################################################
     # Data paths for Muscimol dataset
-    A_by_cond_path = paper_data_dir / "fig2_musc_A_by_cond.h5"
-    X_by_cond_path = paper_data_dir / "fig2_musc_X_by_cond.h5"
-    musc_td_df_path = paper_data_dir / "fig2_musc_all_td_df.h5"
-    musc_sess_dict_path = paper_data_dir / "musc_sess_dict.json"
+    A_by_cond_path = (
+        DATA_DIR / "pupil_responses" / "fig02_muscimol_A_pupil_by_condition.h5"
+    )
+    X_by_cond_path = (
+        DATA_DIR / "pupil_responses" / "fig02_muscimol_X_pupil_by_condition.h5"
+    )
+    musc_td_df_path = DATA_DIR / "trial_tables" / "fig02_muscimol_trials.h5"
+    musc_sess_dict_path = (
+        DATA_DIR / "session_metadata" / "fig02_muscimol_sessions_by_state.json"
+    )
 
     # Load condition pupil response DataFrames with unique panel-specific variable names
     A_musc_by_cond = load_response_dfs(A_by_cond_path)
@@ -422,10 +426,16 @@ if __name__ == '__main__':
     # Opto (Normal vs Deviant ABAD)
     # =========================================================================
 
-    A_by_cond_path = paper_data_dir / "fig2_opto_A_by_cond.h5"
-    X_by_cond_path = paper_data_dir / "fig2_opto_X_by_cond.h5"
-    opto_td_df_path = paper_data_dir / "td_df_for_norm_dev.h5"
-    opto_sess_dict_path = paper_data_dir / "opto_sess_dict.json"
+    A_by_cond_path = (
+        DATA_DIR / "pupil_responses" / "fig02_opto_A_pupil_by_condition.h5"
+    )
+    X_by_cond_path = (
+        DATA_DIR / "pupil_responses" / "fig02_opto_X_pupil_by_condition.h5"
+    )
+    opto_td_df_path = DATA_DIR / "trial_tables" / "fig02_opto_normdev_trials.h5"
+    opto_sess_dict_path = (
+        DATA_DIR / "session_metadata" / "fig02_fig04_opto_sessions_by_state.json"
+    )
 
     # Load condition pupil response DataFrames with unique opto variable name
     A_opto_by_cond = load_response_dfs(A_by_cond_path)
@@ -599,7 +609,9 @@ if __name__ == '__main__':
     # =========================================================================
 
     # Path to pre-saved HDF5 file containing all subset responses
-    subset_resps_path = Path(r'D:\paper_data\fig2\gen_opto_all_subset_resps.h5')
+    subset_resps_path = (
+        DATA_DIR / "pupil_responses" / "fig02_opto_subset_A_pupil_responses.h5"
+    )
 
     all_subset_resps = load_response_dfs(subset_resps_path)
 
@@ -797,8 +809,12 @@ if __name__ == '__main__':
     # =========================================================================
 
     # 1. Load pre-computed condition response dictionaries for Panel C (using direct path without paper_data_dir)
-    A_panel_c_pre_by_cond = load_response_dfs("fig2_musc_A_pre_by_cond.h5")
-    X_panel_c_pre_by_cond = load_response_dfs("fig2_musc_X_pre_by_cond.h5")
+    A_panel_c_pre_by_cond = load_response_dfs(
+        DATA_DIR / "pupil_responses" / "fig02_muscimol_A_prestim_by_condition.h5"
+    )
+    X_panel_c_pre_by_cond = load_response_dfs(
+        DATA_DIR / "pupil_responses" / "fig02_muscimol_X_prestim_by_condition.h5"
+    )
 
     conds_by_expected_musc = {
         'expected': ['frequent'],
@@ -882,8 +898,12 @@ if __name__ == '__main__':
     # =========================================================================
 
     # 1. Load pre-computed condition response dictionaries for Panel g (using direct path without paper_data_dir)
-    A_panel_g_pre_by_cond = load_response_dfs(Path("fig2_opto_A_pre_by_cond.h5"))
-    X_panel_g_pre_by_cond = load_response_dfs(Path("fig2_opto_X_pre_by_cond.h5"))
+    A_panel_g_pre_by_cond = load_response_dfs(
+        DATA_DIR / "pupil_responses" / "fig02_opto_A_prestim_by_condition.h5"
+    )
+    X_panel_g_pre_by_cond = load_response_dfs(
+        DATA_DIR / "pupil_responses" / "fig02_opto_X_prestim_by_condition.h5"
+    )
 
     A_pre_opto_dict = {}
     X_pre_opto_dict = {}
@@ -951,8 +971,12 @@ if __name__ == '__main__':
     # =========================================================================
 
     # 1. Load pre-saved pre-stimulus condition response dictionaries for Panel k with unique panel-specific names
-    A_panel_k_pre_by_cond = load_response_dfs('fig2_dev_opto_A_by_cond_pre.h5')
-    X_panel_k_pre_by_cond = load_response_dfs('fig2_dev_opto_X_by_cond_pre.h5')
+    A_panel_k_pre_by_cond = load_response_dfs(
+        DATA_DIR / "pupil_responses" / "fig02_opto_deviant_A_prestim_by_condition.h5"
+    )
+    X_panel_k_pre_by_cond = load_response_dfs(
+        DATA_DIR / "pupil_responses" / "fig02_opto_deviant_X_prestim_by_condition.h5"
+    )
 
     dev_cond_names = ['normal', 'dev_ABCD1', 'dev_ABBA1']
     subsets_2_plot = ['control', 'opto']

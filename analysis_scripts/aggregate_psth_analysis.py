@@ -363,9 +363,16 @@ class AggregateSession:
         master_dict = load_dict_from_h5(h5_path)
 
         self.concatenated_event_responses = master_dict.get('responses', None)
-        self.concatenated_event_responses_sem = master_dict.get('responses_sem', None)
-        self.smoothed_concatenated_responses = master_dict.get('smooth', None)
-        self.smoothed_concatenated_responses_sem = master_dict.get('smooth_sem', None)
+        try:
+            self.concatenated_event_responses_sem = master_dict.get('responses_sem', None)
+            self.smoothed_concatenated_responses = master_dict.get('smooth', None)
+            self.smoothed_concatenated_responses_sem = master_dict.get('smooth_sem', None)
+
+        except FileNotFoundError:
+            warnings.warn(f'Intermediate files for smoothing not found. Smoothed PSTH plotting not possible.')
+            self.concatenated_event_responses_sem = None
+            self.smoothed_concatenated_responses = None
+            self.smoothed_concatenated_responses_sem = None
 
         try:
             self.peak_ts_by_pips = master_dict.get('peak_ts', None)

@@ -385,9 +385,11 @@ def sim_across_sessions(sess_list: list, _resps_dict: dict, pips2comp: list, x_s
 # =========================================================================
 # Analysis for sorted PSTH plot
 # =========================================================================
-plot_config_path = Path(r"H:\ephys\psth_plot_config_ephys_2401_2504.yaml")
-aggr_savedir = Path(r"X:\Dammy\aggr_savedir")
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+plot_config_path = DATA_DIR / "configs" / "fig03_ephys_2401_2504.yaml"
+aggr_savedir = DATA_DIR / "aggregate_cache"
 figdir = Path(r"X:\Dammy\figures\decoding_plots_aggr_sessions_ephys_2401_2504")
+decoding_data_dir = DATA_DIR / "decoding"
 
 # Set up stylesheet and line styling
 plt.style.use('../figure_stylesheet.mplstyle')
@@ -413,7 +415,7 @@ stim_resps = AggregateSession(None, args, plot_config, pips_to_plot)
 
 # Load or aggregate response data
 stim_resps.aggregate_mean_sess_responses(
-    concat_savename=aggr_savedir / 'trial_stim_responses.joblib',
+    concat_savename=aggr_savedir / 'fig03_stimulus_response_aggregate.joblib',
     reload_save=True
 )
 
@@ -454,7 +456,9 @@ for pip in pips_to_plot:
 # =========================================================================
 
 # Prepare dataframe
-stim_dec_df: pd.DataFrame = pd.read_hdf(figdir / r"stim_decoding_df.h5")
+stim_dec_df: pd.DataFrame = pd.read_hdf(
+    decoding_data_dir / "fig03_stimulus_decoding_results.h5"
+)
 stim_dec_df.set_index('name', append=True, inplace=True)
 
 # Run function
@@ -480,19 +484,24 @@ fig_3c_data.to_csv(figdir / 'fig_3c_data.csv')
 # Figure 3d: Pip vs Pip confusion matrix
 # =========================================================================
 
-for _cm_path, _dec_df_path,sffx in zip([r"all_v_all_decoding_cm.npy",r"all_v_all_train_rare_decoding_cm.npy"][:],
-                                    [r"all_v_all_decoding_df.h5",r"all_v_all_train_rare_decoding_df.h5"],
+for _cm_path, _dec_df_path,sffx in zip(
+                                    ["fig03_all_pips_confusion_matrices.npy",
+                                     "fig03_rare_trained_confusion_matrices.npy"],
+                                    ["fig03_all_pips_decoding_results.h5",
+                                     "fig03_rare_trained_decoding_results.h5"],
                                     ["","_train_rare"]):
 
 
     print(f"\n--- {_dec_df_path} ---")
-    cm_path = figdir / _cm_path
+    cm_path = decoding_data_dir / _cm_path
     cms = np.load(cm_path)
 
     # save cm data
     pd.DataFrame(cms.mean(axis=0)).to_csv(f'fig_3d_cm_data_{sffx}.csv', index=False)
-    cms_shuf = np.load(cm_path.with_stem(f'{cm_path.stem}_shuffle') )
-    dec_df: pd.DataFrame = pd.read_hdf(figdir / _dec_df_path )
+    cms_shuf = np.load(
+        cm_path.with_name(f"{cm_path.stem}_shuffled{cm_path.suffix}")
+    )
+    dec_df: pd.DataFrame = pd.read_hdf(decoding_data_dir / _dec_df_path)
     sessnames = dec_df.index
 
     names = [sess.split('_')[0] for sess in sessnames]
@@ -548,7 +557,10 @@ for _cm_path, _dec_df_path,sffx in zip([r"all_v_all_decoding_cm.npy",r"all_v_all
 # =========================================================================
 
 # Load data and prepare structures
-resps_dict = joblib.load(r"D:\ephys\rare_freq_by_pip_resps_ephys_2401_2504.joblib")
+resps_dict = joblib.load(
+    DATA_DIR / "ephys_responses"
+    / "fig03_rare_frequency_by_pip_responses_ephys_2401_2504.joblib"
+)
 all_sess = list(resps_dict.keys())
 all_names = np.unique([sess.split('_')[0] for sess in all_sess])
 
@@ -620,7 +632,7 @@ print(f"Similarity across sessions (Final vs Initial Session t-test): t = {t_rel
 rare_freq_resps = AggregateSession(None, args, plot_config, ['A-0', 'A-0', 'A-0'])
 rare_freq_resps.aggregate_mean_sess_responses(conds=['rare','frequent'],filt_by_prc=False, prc_thr=0.5,
                                               prc_pips=['A-0_rare','A-0_frequent'],prc_mutual=True,
-                                              concat_savename=aggr_savedir/ 'A-0_rare_A-0_frequent.joblib',
+                                              concat_savename=aggr_savedir / 'fig03_rare_frequency_response_aggregate.joblib',
                                               zscore_by_trial=False,
                                               reload_save=True)
 rare_freq_resps.plot_mean_ts(figdir,)
@@ -669,8 +681,10 @@ pd.DataFrame(rf_means_sems).to_csv('fig_3g_plot_data.csv')
 
 # Prepare combined dataframe
 rf_dec_dfs = {
-    n: pd.read_hdf(figdir / fn).set_index('name', append=True)
-    for n, fn in zip(['reg'], ['rare_freq_decoding_using_post0_5_no_zscore_df.h5',])
+    n: pd.read_hdf(decoding_data_dir / fn).set_index('name', append=True)
+    for n, fn in zip(
+        ['reg'], ['fig03_rare_frequency_poststim_decoding_results.h5']
+    )
 }
 
 rf_df_list = []
@@ -708,7 +722,7 @@ norm_dev_resps.aggregate_mean_sess_responses(
         pip_4_filt=['A-1'], pip_2_filt=['A-0'],
         filt_func=lambda tn, ft: [max(tn[tn < e] - e) + e for e in ft],
         # filt_func= lambda tn, ft: [e-1 for e in ft],
-        concat_savename=aggr_savedir / 'A-0_A-1_1_trial_back.joblib',
+        concat_savename=aggr_savedir / 'fig03_normal_deviant_response_aggregate.joblib',
         reload_save=True)
 
 norm_dev_resps.plot_mean_ts(figdir,)
@@ -759,12 +773,14 @@ from analysis_scripts.plot_funcs import format_axis
 
 # 1. Setup paths and parameters
 
-norm_dev_figdir = Path(r'X:\Dammy\figures\decoding_plots_aggr_sessions_ephys_2401_2504')
+norm_dev_figdir = figdir
 if not norm_dev_figdir.is_dir():
     norm_dev_figdir.mkdir(parents=True, exist_ok=True)
 
-event_responses = joblib.load(r"D:\ephys\normdev_resps_ephys_2401_2504.joblib")
-# event_responses = joblib.load(r"X:\Dammy\aggr_savedir\normdev_resps_ephys_2401_2504.joblib")
+event_responses = joblib.load(
+    DATA_DIR / "ephys_responses"
+    / "fig03_normal_deviant_responses_ephys_2401_2504.joblib"
+)
 
 dec_over_time_window = [-0.5, 1.5]
 
@@ -865,7 +881,9 @@ norm_dev_accs_ts_df.to_hdf('dec_ts_df.h5', key='norm_dev_accs_ts_df')
 # =========================================================================
 
 # Prepare dataframe
-normdev_dec_df: pd.DataFrame = pd.read_hdf(figdir / "normdev_decoding_0.5_1.5_df.h5")
+normdev_dec_df: pd.DataFrame = pd.read_hdf(
+    decoding_data_dir / "fig03_normal_deviant_decoding_results.h5"
+)
 normdev_dec_df.drop('DO79_240227a', axis=0, inplace=True)
 normdev_dec_df.set_index('name', append=True, inplace=True)
 
@@ -881,4 +899,3 @@ fig_3h_2, ax_3h_2, normdev_grouped = plot_and_analyze_decoding(
 )
 
 normdev_grouped.to_csv('fig_3l_plot_data.csv')
-

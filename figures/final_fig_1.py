@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 
 from analysis_scripts.pupil_analysis_funcs import PupilCondAnalysis
+
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 from xdetectioncore.io_utils import load_response_dfs
 from xdetectioncore.behaviour import get_all_cond_filts
 from xdetectioncore.plotting import format_axis, plot_shaded_error_ts
@@ -17,14 +19,14 @@ if __name__ == '__main__':
     plt.style.use('../figure_stylesheet.mplstyle')
 
     # Load pre-computed condition response dictionaries
-    A_by_cond_path = Path(r"X:\Xdetection_data\data_for_paper\fig1_A_by_cond.h5")
-    X_by_cond_path = Path(r"X:\Xdetection_data\data_for_paper\fig1_X_by_cond.h5")
+    A_by_cond_path = DATA_DIR / "pupil_responses" / "fig01_mouse_A_pupil_by_condition.h5"
+    X_by_cond_path = DATA_DIR / "pupil_responses" / "fig01_mouse_X_pupil_by_condition.h5"
 
     A_by_cond = load_response_dfs(A_by_cond_path)
     X_by_cond = load_response_dfs(X_by_cond_path)
 
     # Load trial data
-    all_td_df_path = Path(r"X:\Xdetection_data\data_for_paper\all_td_df.h5")
+    all_td_df_path = DATA_DIR / "trial_tables" / "fig01_mouse_trials.h5"
     all_td_df = pd.read_hdf(all_td_df_path)
     assert isinstance(all_td_df, pd.DataFrame)
 
@@ -32,7 +34,7 @@ if __name__ == '__main__':
     good_trial_filt = 'n_since_last_Trial_Outcome <=5 '
 
     # Load session lists by condition
-    sesslist_path = Path('sesslist_by_cond.json')
+    sesslist_path = DATA_DIR / "session_metadata" / "fig01_sessions_by_analysis.json"
     if sesslist_path.is_file():
         with open(sesslist_path, 'r') as f:
             sesslist_by_cond = json.load(f)
@@ -210,7 +212,9 @@ if __name__ == '__main__':
     # =========================================================================
 
 
-    all_sess_td_df = pd.read_hdf('all_td_df_4_beh.h5')
+    all_sess_td_df = pd.read_hdf(
+        DATA_DIR / "trial_tables" / "fig01_supp_behavior_trials.h5"
+    )
 
     # Ensure good trial filter is defined
     good_trial_filt = 'Stage>=3 & n_since_last_Trial_Outcome <=5'
@@ -248,8 +252,12 @@ if __name__ == '__main__':
     # Panel D: Lick rate time-series (Top: licks to X onset, Bottom: licks to pattern onset)
     # -------------------------------------------------------------------------
 
-    patt_non_patt_licks_df = pd.read_hdf('patt_non_patt_licks_df.h5','df')
-    patt_non_patt2X_licks_df = pd.read_hdf('patt_non_patt2X_licks_df.h5','df')
+    patt_non_patt_licks_df = pd.read_hdf(
+        DATA_DIR / "behavior" / "fig01_lick_traces_pattern_vs_nonpattern.h5", "df"
+    )
+    patt_non_patt2X_licks_df = pd.read_hdf(
+        DATA_DIR / "behavior" / "fig01_lick_traces_pattern_vs_X.h5", "df"
+    )
 
 
     x_ser = np.array(patt_non_patt_licks_df.columns.total_seconds()).astype(float)
@@ -314,8 +322,12 @@ if __name__ == '__main__':
     # =========================================================================
 
     # Rename and use A_by_cond / X_by_cond as starting point
-    A_by_cond_pre = load_response_dfs(Path('arousal_control_A_by_cond.h5'))
-    X_by_cond_pre = load_response_dfs(Path('arousal_control_X_by_cond.h5'))
+    A_by_cond_pre = load_response_dfs(
+        DATA_DIR / "pupil_responses" / "fig01_arousal_control_A_pupil_by_condition.h5"
+    )
+    X_by_cond_pre = load_response_dfs(
+        DATA_DIR / "pupil_responses" / "fig01_arousal_control_X_pupil_by_condition.h5"
+    )
 
     conds_by_expected = {
         'expected': ['normal', 'frequent'],
@@ -380,8 +392,12 @@ if __name__ == '__main__':
     # Panels O & P: Human Analysis
     # =========================================================================
 
-    hum_A_by_cond_path = r"fig1_human_A_by_cond.h5"
-    hum_X_by_cond_path = r"fig1_human_X_by_cond.h5"
+    hum_A_by_cond_path = (
+        DATA_DIR / "human_responses" / "fig01_human_A_pupil_by_condition.h5"
+    )
+    hum_X_by_cond_path = (
+        DATA_DIR / "human_responses" / "fig01_human_X_pupil_by_condition.h5"
+    )
 
     hum_A_by_cond = load_response_dfs(hum_A_by_cond_path)
     hum_X_by_cond = load_response_dfs(hum_X_by_cond_path)
