@@ -86,7 +86,7 @@ def main():
             fig_dir.mkdir(parents=False)
     plt.subplots()
 
-    plt.style.use('../figure_stylesheet.mplstyle')
+    plt.style.use('figure_stylesheet.mplstyle')
     aggr_savedir = ceph_dir / posix_from_win(plot_config.get('aggr_savedir',
                                                           r'X:\Dammy\aggr_savedir'))
 
@@ -323,69 +323,59 @@ class AggregateSession:
         return True
 
     def _save_aggr_means(self, concat_savename: Path):
-        """
-        Saves all aggregated structures into a master .h5 file
-        and session names separately into a .npy file.
-        """
+        savename_stem = concat_savename.stem
+        save_dir = concat_savename.parent
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+        save_dict_to_h5(self.concatenated_event_responses, concat_savename.with_suffix('.h5'))
+        save_dict_to_h5(self.concatenated_event_responses_sem,
+                        concat_savename.with_stem(f'{savename_stem}_sem').with_suffix('.h5'))
+        save_dict_to_h5(self.smoothed_concatenated_responses,
+                        concat_savename.with_stem(f'{savename_stem}_smooth').with_suffix('.h5'))
+        save_dict_to_h5(self.smoothed_concatenated_responses_sem,
+                        concat_savename.with_stem(f'{savename_stem}_smooth_sem').with_suffix('.h5'))
+        np.save(concat_savename.with_stem(f'{savename_stem}_sessnames').with_suffix('.npy'),
+                self.concatenated_sessnames)
+        save_dict_to_h5(self.peak_ts_by_pips, concat_savename.with_stem(f'{savename_stem}_peak_ts').with_suffix('.h5'))
+        save_dict_to_h5(self.event_mats_4_sorting,
+                        concat_savename.with_stem(f'{savename_stem}_sorted_mats').with_suffix('.h5'))
+
+    def _load_aggr_means(self, concat_savename: Path):
+        savename_stem = concat_savename.stem
         h5_path = concat_savename.with_suffix('.h5')
-        npy_path = concat_savename.with_stem(f'{concat_savename.stem}_sessnames').with_suffix('.npy')
-
-        # Package everything except sessnames into a master dictionary
-        master_dict = {
-            'responses': self.concatenated_event_responses,
-            'responses_sem': self.concatenated_event_responses_sem,
-            'smooth': self.smoothed_concatenated_responses,
-            'smooth_sem': self.smoothed_concatenated_responses_sem,
-            'peak_ts': self.peak_ts_by_pips,
-            'sorted_mats': self.event_mats_4_sorting
-        }
-
-        # Save master dict using the modular HDF5 writer
-        save_dict_to_h5(master_dict, h5_path)
-
-        # Save session names as a separate .npy file
-        if self.concatenated_sessnames is not None:
-            np.save(npy_path, self.concatenated_sessnames)
-
-    def _load_aggr_means(self, concat_savename: Path) -> bool:
-        """
-        Loads aggregated metrics from the master .h5 file
-        and session names from the .npy file.
-        """
-        h5_path = concat_savename.with_suffix('.h5')
-        npy_path = concat_savename.with_stem(f'{concat_savename.stem}_sessnames').with_suffix('.npy')
-
         if not h5_path.exists():
-            warnings.warn(f'Concatenation HDF5 file {h5_path} does not exist')
+            warnings.warn(f'Concatenation {h5_path} does not exist')
             return False
 
-        # Load master dict using the modular HDF5 reader
-        master_dict = load_dict_from_h5(h5_path)
-
-        self.concatenated_event_responses = master_dict.get('responses', None)
+        self.concatenated_event_responses = load_dict_from_h5(h5_path)
+        self.concatenated_sessnames = np.load(
+                        concat_savename.with_stem(f'{savename_stem}_sessnames').with_suffix('.npy'))
+        # Try and load other intermediate files, but don't fail if they don't exist
         try:
-            self.concatenated_event_responses_sem = master_dict.get('responses_sem', None)
-            self.smoothed_concatenated_responses = master_dict.get('smooth', None)
-            self.smoothed_concatenated_responses_sem = master_dict.get('smooth_sem', None)
+            self.concatenated_event_responses_sem = load_dict_from_h5(
+                concat_savename.with_stem(f'{savename_stem}_sem').with_suffix('.h5'))
+        except FileNotFoundError:
+            warnings.warn(f'File not found: {concat_savename.with_stem(f"{savename_stem}_sem").with_suffix(".h5")}')
+        try:
+            self.smoothed_concatenated_responses = load_dict_from_h5(
+                concat_savename.with_stem(f'{savename_stem}_smooth').with_suffix('.h5'))
+        except FileNotFoundError:
+            warnings.warn(f'File not found: {concat_savename.with_stem(f"{savename_stem}_smooth").with_suffix(".h5")}')
+        try:
+            self.smoothed_concatenated_responses_sem = load_dict_from_h5(
+                concat_savename.with_stem(f'{savename_stem}_smooth_sem').with_suffix('.h5'))
 
         except FileNotFoundError:
-            warnings.warn(f'Intermediate files for smoothing not found. Smoothed PSTH plotting not possible.')
-            self.concatenated_event_responses_sem = None
-            self.smoothed_concatenated_responses = None
-            self.smoothed_concatenated_responses_sem = None
-
+            warnings.warn(f'File not found: {concat_savename.with_stem(f"{savename_stem}_smooth_sem").with_suffix(".h5")}')
+            
+    
         try:
-            self.peak_ts_by_pips = master_dict.get('peak_ts', None)
-            self.event_mats_4_sorting = master_dict.get('sorted_mats', None)
-        except FileNotFoundError:
+            self.peak_ts_by_pips = load_dict_from_h5(
+                concat_savename.with_stem(f'{savename_stem}_peak_ts').with_suffix('.h5'))
+            self.event_mats_4_sorting = load_dict_from_h5(
+                concat_savename.with_stem(f'{savename_stem}_sorted_mats').with_suffix('.h5'))
+        except Exception:
             warnings.warn(f'Intermediate files for sorting not found. Sorted PSTH plotting not possible.')
-
-        # Load session names from .npy
-        if npy_path.exists():
-            self.concatenated_sessnames = np.load(npy_path, allow_pickle=True)
-        else:
-            warnings.warn(f'Sessnames file {npy_path} not found.')
-
         return True
 
     def subset_responses(self, batch_responses, conds=None, cond_filts=None, filt_by_prc=False, sessname_filts=None,
@@ -496,6 +486,7 @@ class AggregateSession:
 
         if concat_savename is not None and kwargs.get('reload_save', True):
             reloaded: bool = self._load_aggr_means(concat_savename)
+            # reloaded: bool = self._load_aggr_means_joblib(concat_savename)
             if reloaded:
                 return None
 
