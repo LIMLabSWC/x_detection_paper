@@ -2,6 +2,7 @@ from itertools import combinations
 from pathlib import Path
 import json
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -11,14 +12,14 @@ from xdetectioncore.io_utils import load_response_dfs
 from xdetectioncore.plotting import format_axis, set_nested_xlabels
 from xdetectioncore.pupil.pupil_analysis_funcs import add_name_to_response_dfs
 from xdetectioncore.behaviour import get_all_cond_filts
-from analysis_scripts.pupil_analysis_funcs import PupilCondAnalysis
+from pupil_analysis_funcs import PupilCondAnalysis
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
 
 if __name__ == '__main__':
 
-    plt.style.use('../figure_stylesheet.mplstyle')
+    plt.style.use('figure_stylesheet.mplstyle')
 
     ###################################################################################################################
     ##### MUSCIMOL ################################################################################################
@@ -64,13 +65,15 @@ if __name__ == '__main__':
 
     none_sess = [
         sess for sess in drug_sess_dict.get('none', [])
-        if sess.split('_')[1] not in exclude_dates and 'DO76' not in sess
-           and 'DO71' not in sess
+        if sess.split('_')[1] not in exclude_dates
+           # and 'DO76' not in sess
+           # and 'DO71' not in sess
     ]
     musc_sess = [
         sess for sess in drug_sess_dict.get('muscimol', [])
-        if sess.split('_')[1] not in exclude_dates and 'DO76' not in sess
-           and 'DO71' not in sess
+        if sess.split('_')[1] not in exclude_dates
+           # and 'DO76' not in sess
+           # and 'DO71' not in sess
     ]
     sess_2_use_by_drug ={'none':none_sess, 'muscimol':musc_sess}
 
@@ -203,15 +206,19 @@ if __name__ == '__main__':
     # 3. Rare vs Frequent Time-Series Plot (Control vs Muscimol)
     # =========================================================================
     musc_resp_plot_data_by_stim = {}
+    musc_by_drug_sess = {}
+    mutual_sessions = [s for s in A_musc_by_cond['rare'].index.get_level_values('sess')
+                       if s in A_musc_by_cond['frequent'].index.get_level_values('sess')]
     for stim_name, stim_by_cond in zip(['pattern', 'X'], [A_musc_by_cond, X_musc_by_cond]):
         musc_resp_plot_data = []
         for drug_key, drug_label in drugs_to_plot:
-            target_sess = sess_2_use_by_drug[drug_key]
+            target_sess = [s for s in sess_2_use_by_drug[drug_key] if s in mutual_sessions]
             if not target_sess:
                 continue
             rf_analysis = PupilCondAnalysis(stim_by_cond, rare_freq_condnames, target_sess,
                                             event_name=stim_name)
             rf_analysis.plot_ts_by_cond(cond_line_kwargs=rare_freq_line_kwargs)
+            musc_by_drug_sess[f'{drug_label}'] = rf_analysis.by_cond['rare'].index.get_level_values('sess').unique()
 
             ax = rf_analysis.plots['ts_by_cond'][1]
             ax.set_xlim(xlim)
@@ -229,6 +236,7 @@ if __name__ == '__main__':
             for cond, resps in d_resps.items():
                 musc_resp_plot_data_by_stim[f'PDR_mean_{stim_name}_{cond}_{drugs_to_plot[di][0]}'] = resps.groupby('sess').mean().mean(axis=0)
                 musc_resp_plot_data_by_stim[f'PDR_sem_{stim_name}_{cond}_{drugs_to_plot[di][0]}'] = resps.groupby('sess').mean().sem(axis=0)
+                print(f'{stim_name} {cond}: {resps.groupby("sess").mean().shape}')
     musc_plot_data_df = pd.DataFrame(musc_resp_plot_data_by_stim)
     musc_plot_data_df.T.to_csv('fig2b_musc_rare_freq_ts_plot_data.csv')
 
@@ -239,7 +247,9 @@ if __name__ == '__main__':
 
     # colate performance data for each drug state and plot
     for drug_key, drug_label in drugs_to_plot:
-        drug_sess_list = [sess for sess in drug_sess_dict.get(drug_key, []) if 'DO76' not in sess]
+        drug_sess_list = [sess for sess in drug_sess_dict.get(drug_key, [])
+                          if 'DO76' not in sess
+                          and 'DO71' not in sess]
         rare_freq_sess_df = musc_td_df.loc[musc_td_df.index.get_level_values('sess').isin(drug_sess_list)]
 
         perf_data = (
@@ -525,7 +535,7 @@ if __name__ == '__main__':
     # =========================================================================
     all_batch = [f'RS0{i}' for i in '123678']
 
-    opto_sess_dict['light_on'] = opto_sess_dict['light_on']+opto_sess_dict['learning_block_light_on'] + opto_sess_dict['testing_block_light_on']
+    # opto_sess_dict['light_on'] = opto_sess_dict['light_on']+opto_sess_dict['learning_block_light_on'] + opto_sess_dict['testing_block_light_on']
 
     opto_states_to_plot = [
         ('light_off', 'Control'),
@@ -615,15 +625,20 @@ if __name__ == '__main__':
 
     all_subset_resps = load_response_dfs(subset_resps_path)
 
-    df_to_save = {}
+    df_to_save = []
     for subset_name, subset_df in all_subset_resps.items():
         if not isinstance(subset_df, pd.DataFrame):
             continue
-        df_to_save[f'{subset_name}_mean'] = subset_df.groupby(['sess', 'condition']).mean().mean()
-        df_to_save[f'{subset_name}_sem'] = subset_df.groupby(['sess', 'condition']).mean().sem()
 
-    df_to_save = pd.DataFrame(pd.DataFrame(df_to_save).values).T
-    df_to_save.to_csv('fig2_opto_rule_violation_ts_plot_data.csv')
+        resps_by_cond = subset_df.groupby(['sess', 'condition']).mean().groupby('condition').mean()
+        resps_by_cond.index = resps_by_cond.index = resps_by_cond.index.astype(str) + f'_{subset_name}_mean'
+
+        resps_sems_by_cond = subset_df.groupby(['sess', 'condition']).mean().groupby('condition').sem()
+        resps_sems_by_cond.index = resps_sems_by_cond.index = resps_sems_by_cond.index.astype(str) + f'_{subset_name}_sem'
+        df_to_save.append(pd.concat([resps_by_cond, resps_sems_by_cond], axis=0))
+
+    df_to_save = pd.DataFrame(pd.concat(df_to_save,axis=0))
+    df_to_save.to_csv('fig2j_opto_rule_violation_ts_plot_data.csv')
 
     dev_cond_names = ['normal', 'dev_ABCD1', 'dev_ABBA1']
     dev_line_kwargs = {
@@ -631,7 +646,7 @@ if __name__ == '__main__':
         'dev_ABCD1': {'c': '#e8739bff', 'ls': '-'},
         'dev_ABBA1': {'c': '#73e8c1ff', 'ls': '-'}
     }
-    plt.style.use('../figure_stylesheet.mplstyle')
+    plt.style.use('figure_stylesheet.mplstyle')
 
     dev_diff_by_subset = {}
     mean_pupil_by_subset = {}
@@ -653,6 +668,8 @@ if __name__ == '__main__':
         analysis_obj.plots['ts_by_cond'][0].show()
 
     # --- Difference Across Windows Analysis ---
+
+
     for subset_name, subset_df in all_subset_resps.items():
         assert isinstance(subset_df, pd.DataFrame)
         by_cond = {
@@ -818,7 +835,7 @@ if __name__ == '__main__':
 
     conds_by_expected_musc = {
         'expected': ['frequent'],
-        'unexpected': ['rare']
+        'unexpected': ['rare'],
     }
 
     A_pre_musc_dict = {}
@@ -830,22 +847,19 @@ if __name__ == '__main__':
             if c in A_panel_c_pre_by_cond:
                 df_a = A_panel_c_pre_by_cond[c].copy()
                 df_a['expected'] = exp_val
+                df_a.set_index('expected', append=True, inplace=True)
                 A_pre_musc_dict[c] = df_a
             if c in X_panel_c_pre_by_cond:
                 df_x = X_panel_c_pre_by_cond[c].copy()
                 df_x['expected'] = exp_val
+                df_x.set_index('expected', append=True, inplace=True)
                 X_pre_musc_dict[c] = df_x
 
     A_pre_resps_musc = pd.concat(list(A_pre_musc_dict.values()))
     X_pre_resps_musc = pd.concat(list(X_pre_musc_dict.values()))
 
-    preA_data = A_pre_resps_musc.loc[:, -1:0.5].mean(
-        axis=1) if -1 in A_pre_resps_musc.columns or A_pre_resps_musc.columns.min() < 0 else A_pre_resps_musc.iloc[
-                                                                                             :, :int(
-        A_pre_resps_musc.shape[1] / 2)].mean(axis=1)
-    preX_data = X_pre_resps_musc.loc[:, -0.5:-0.01].mean(
-        axis=1) if -0.5 in X_pre_resps_musc.columns else X_pre_resps_musc.iloc[:,
-                                                         :int(X_pre_resps_musc.shape[1] / 3)].mean(axis=1)
+    preA_data = A_pre_resps_musc.loc[:, -0.5:-0.01].mean(axis=1)
+    preX_data = X_pre_resps_musc.loc[:, -0.5:-0.01].mean(axis=1)
 
     fig_c_pupil, (ax_cp_top, ax_cp_bot) = plt.subplots(2, 1, figsize=(2.2, 3.5), sharex=True)
 
@@ -858,18 +872,17 @@ if __name__ == '__main__':
     for ax, (stim_name, stim_data) in zip([ax_cp_top, ax_cp_bot],
                                           [('Pre pattern', preA_data), ('Pre X', preX_data)]):
         for ii, (drug_key, nickname) in enumerate(drug_states_musc):
-            drug_sess_list = sess_2_use_by_drug[drug_key]
+            drug_sess_list = musc_by_drug_sess[nickname]
 
             for expected_val, pos_offset in zip([1, 0], [0, 1]):
                 pos = expected_val + ii * 2
 
                 mask = (
                         stim_data.index.get_level_values('sess').isin(drug_sess_list) &
-                        (stim_data.index.get_level_values(
-                            'expected') == expected_val if 'expected' in stim_data.index.names else True)
+                        (stim_data.index.get_level_values('expected') == expected_val)
                 )
                 subset = stim_data.loc[mask]
-                sess_means = subset.groupby('sess').mean() if not subset.empty else pd.Series(dtype=float)
+                sess_means = subset.groupby('sess').mean()
 
                 ax.boxplot(sess_means.values, positions=[pos], **boxplot_kwargs)
                 musc_pre_stim_plot_data[f'{nickname}_{stim_name}_{"expected" if expected_val == 1 else "unexpected"}'] = sess_means.values
@@ -890,6 +903,7 @@ if __name__ == '__main__':
     fig_c_pupil.suptitle('Baseline pupil', fontsize=10, y=0.98)
     fig_c_pupil.set_layout_engine('constrained')
     fig_c_pupil.show()
+    fig_c_pupil.savefig('fig_c_baseline_pupil.pdf')
 
     (pd.DataFrame({k:v for k,v in musc_pre_stim_plot_data.items() if 'Muscimol' in k}).T).to_csv('fig2_c_musc_pre_stim_plot_data.csv')
     (pd.DataFrame({k:v for k,v in musc_pre_stim_plot_data.items() if 'Control' in k}).T).to_csv('fig2_c_control_pre_stim_plot_data.csv')
@@ -899,59 +913,70 @@ if __name__ == '__main__':
 
     # 1. Load pre-computed condition response dictionaries for Panel g (using direct path without paper_data_dir)
     A_panel_g_pre_by_cond = load_response_dfs(
-        DATA_DIR / "pupil_responses" / "fig02_opto_A_prestim_by_condition.h5"
+        DATA_DIR / "pupil_responses" / "fig02_opto_2503_A_prestim_by_condition.h5"
     )
     X_panel_g_pre_by_cond = load_response_dfs(
-        DATA_DIR / "pupil_responses" / "fig02_opto_X_prestim_by_condition.h5"
+        DATA_DIR / "pupil_responses" / "fig02_opto_2503_X_prestim_by_condition.h5"
     )
 
     A_pre_opto_dict = {}
     X_pre_opto_dict = {}
 
-    for cond_name in ['expected', 'unexpected']:
-        exp_val = 1 if cond_name == 'expected' else 0
+    # for cond_name in ['expected', 'unexpected']:
+    for cond_name in ['normal', 'deviant_C']:
+        exp_val = 1 if cond_name == 'normal' else 0
         df_a = A_panel_g_pre_by_cond[cond_name].copy()
         df_a['expected'] = exp_val
-        A_pre_opto_dict[cond_name] = df_a
+        df_a.set_index('expected', append=True, inplace=True)
+        A_pre_opto_dict['expected' if cond_name =='normal' else 'unexpected'] = df_a
         df_x = X_panel_g_pre_by_cond[cond_name].copy()
         df_x['expected'] = exp_val
-        X_pre_opto_dict[cond_name] = df_x
+        df_x.set_index('expected', append=True, inplace=True)
+        X_pre_opto_dict['expected' if cond_name =='normal' else 'unexpected'] = df_x
 
-    A_pre_resps_opto = pd.concat([A_panel_g_pre_by_cond[c] for c in ['expected', 'unexpected']])
-    X_pre_resps_opto = pd.concat([X_panel_g_pre_by_cond[c] for c in ['expected', 'unexpected']])
+    A_pre_resps_opto = pd.concat([A_pre_opto_dict[c] for c in ['expected', 'unexpected']])
+    X_pre_resps_opto = pd.concat([X_pre_opto_dict[c] for c in ['expected', 'unexpected']])
 
-    preA_data = A_pre_resps_opto.loc[:, -0.5:-0.25].mean(axis=1)
-    preX_data = X_pre_resps_opto.loc[:, -0.5:-0.25].mean(axis=1)
+    preA_data = A_pre_resps_opto.loc[:, -0.5:-0.01].mean(axis=1)
+    preX_data = X_pre_resps_opto.loc[:, -0.5:-0.01].mean(axis=1)
 
     fig_g_pupil, (ax_gp_top, ax_gp_bot) = plt.subplots(2, 1, figsize=(2.2, 3.5), sharex=True)
 
     opto_states_g = [
-        ('control', 'Control'),
-        ('opto', 'Inhibition')
+        ('light_off', 'Control'),
+        ('light_on', 'Inhibition')
     ]
     opto_pre_stim_data = {}
     for ax, (stim_name, stim_data) in zip([ax_gp_top, ax_gp_bot], [('Pre pattern', preA_data), ('Pre X', preX_data)]):
+        sess_names_old_style = pd.Series([s.rsplit('_',1)[0] for s in stim_data.index.get_level_values('sess')])
+        sess_names_old_style.index = stim_data.index
         for ii, (subset_key, nickname) in enumerate(opto_states_g):
             for expected_val, pos_offset in zip([1, 0], [0, 1]):
+                nd_opto_state_sess_list = opto_sess_dict[subset_key]
+
                 pos = expected_val + ii * 2
 
                 mask = (
-                    stim_data.index.get_level_values('subset').isin([subset_key])
-                    if 'subset' in stim_data.index.names else True
+                    sess_names_old_style.isin(nd_opto_state_sess_list)
                 ) & (
                     stim_data.index.get_level_values('expected') == expected_val
-                    if 'expected' in stim_data.index.names else True
                 )
-                subset = stim_data.loc[mask] if isinstance(mask, bool) or mask.any() else stim_data
-                sess_means = subset.groupby('sess').mean() if not subset.empty else pd.Series(dtype=float)
+                subset = stim_data.loc[mask]
+                # subset = (
+                #     subset.sort_index(level=["name", "sess"])
+                #     .groupby(level="name", group_keys=False)
+                #     # .head(10)
+                # )
+                sess_means = subset.groupby('sess').mean()
+
 
                 ax.boxplot(sess_means.values, positions=[pos], **boxplot_kwargs)
-                opto_pre_stim_data[f'{nickname}_{stim_name}_{"expected" if expected_val == 1 else "unexpected"}'] = sess_means.values
+                opto_pre_stim_data[f'{nickname}_{stim_name}_{"expected" if expected_val == 1 else "unexpected"}'] = sess_means
 
         ax.set_ylabel('Pupil size (a.u)')
         ax.set_title(stim_name, fontsize=9)
         format_axis(ax)
-        ax.set_ylim(-2.5, 2.5)
+        ax.set_ylim(-1, 1)
 
     ax_gp_bot.set_xticks([0, 1, 2, 3])
     ax_gp_bot.set_xticklabels(['Expected', 'Unexpected', 'Expected', 'Unexpected'])
@@ -986,18 +1011,15 @@ if __name__ == '__main__':
     # 2. Extract and format window means for each stimulus and subset
     for stim_name, stim_dict in zip(['A', 'X'], [A_panel_k_pre_by_cond, X_panel_k_pre_by_cond]):
         for subset_name in subsets_2_plot:
-            if subset_name in stim_dict:
-                subset_df = stim_dict[f'{subset_name}']
+            subset_df = stim_dict[f'{subset_name}']
 
-                resp_dfs = {}
-                for cond in dev_cond_names:
-                    if 'condition' in subset_df.index.names:
-                        cond_df = subset_df.xs(cond, level='condition')
-                    else:
-                        cond_df = subset_df
-                    resp_dfs[cond] = cond_df.loc[:, -0.5:-0.25].mean(axis=1).groupby(['sess', 'name']).mean()
+            resp_dfs = {}
+            for cond in dev_cond_names:
+                cond_df = subset_df.xs(cond, level='condition')
 
-                resp_dfs_by_stim_by_subset[f'{stim_name}_{subset_name}'] = resp_dfs
+                resp_dfs[cond] = cond_df.loc[:, -0.5:-0.01].mean(axis=1).groupby(['sess', 'name']).mean()
+
+            resp_dfs_by_stim_by_subset[f'{stim_name}_{subset_name}'] = resp_dfs
 
     # 3. Assemble DataFrames for plotting
     _pre_stim_dfs = {k: pd.DataFrame(v) for k, v in resp_dfs_by_stim_by_subset.items()}
@@ -1038,7 +1060,8 @@ if __name__ == '__main__':
     pre_stim_boxplot[0].set_size_inches(4, 4)
     pre_stim_boxplot[0].set_layout_engine('constrained')
     pre_stim_boxplot[0].show()
+    pre_stim_boxplot[0].savefig('fig_2k_data_pre_stim_boxplot.pdf')
 
     prestim_df = pd.concat([v for v in _pre_stim_dfs.values()], axis=1)
-    prestim_df.iloc[:,[0,2]].dropna().to_csv('fig2k_rule_dev_control_by_cond_pre.csv', index=False)
-    prestim_df.iloc[:,[1,3]].dropna().to_csv('fig2k_rule_dev_opto_by_cond_pre.csv', index=False)
+    prestim_df.loc[:,[c for c in prestim_df.columns if 'control' in c]].dropna().to_csv('fig2k_rule_dev_control_by_cond_pre.csv', index=False)
+    prestim_df.loc[:,[c for c in prestim_df.columns if 'control' not in c]].dropna().to_csv('fig2k_rule_dev_opto_by_cond_pre.csv', index=False)

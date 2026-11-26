@@ -340,5 +340,5 @@ for ax, lbl in zip(pc_scatter_by_t_plot[1].flatten(),['post_pip2','post_pip4']):
                 "y": pts[0, 1],
             })
 lbls = [f'{win_lbl}_{animal}_{pip}' for win_lbl in ['post_pip_2','post_pip4']
-        for pip in ['ABCD0','ABCD1','ABBA1'] for animal in all_animals]
+        for animal in all_animals for pip in ['ABCD0','ABCD1','ABBA1']]
 pd.DataFrame(pnts_list,index=lbls).to_csv('fig_5e_plot_data.csv')

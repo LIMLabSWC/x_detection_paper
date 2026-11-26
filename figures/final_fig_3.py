@@ -669,10 +669,9 @@ rf_resp_means = [pd.DataFrame(v,index=rf_multi_idx)
 
 rf_means_sems = {}
 
-for v in rf_resp_means:
-    for pip in rare_freq_resps.smoothed_concatenated_responses.keys():
-        rf_means_sems[f'{pip}_mean'] = v.groupby('name').mean().mean()
-        rf_means_sems[f'{pip}_sem'] = v.groupby('name').mean().sem()
+for v, pip in zip(rf_resp_means, rare_freq_resps.smoothed_concatenated_responses.keys()):
+    rf_means_sems[f'{pip}_mean'] = v.groupby('name').mean().mean()
+    rf_means_sems[f'{pip}_sem'] = v.groupby('name').mean().sem()
 
 pd.DataFrame(rf_means_sems).to_csv('fig_3g_plot_data.csv')
 # =========================================================================
@@ -758,11 +757,10 @@ nd_multi_idx = pd.MultiIndex.from_arrays([norm_dev_sessnames,[e.split('_')[0] fo
 nd_resp_means = [pd.DataFrame(v,index=nd_multi_idx)
                  for v in norm_dev_resps.smoothed_concatenated_responses.values()]
 nd_means_sems = {}
-for v in nd_resp_means:
-    for pip in norm_dev_resps.smoothed_concatenated_responses.keys():
-        nd_means_sems[f'{pip}_mean'] = v.groupby('name').mean().mean()
-        nd_means_sems[f'{pip}_sem'] = v.groupby('name').mean().sem()
-pd.DataFrame(nd_means_sems).to_csv('fig_3j_plot_data.csv')
+for v, pip in zip(nd_resp_means, norm_dev_resps.smoothed_concatenated_responses.keys()):
+    nd_means_sems[f'{pip}_mean'] = v.groupby('name').mean().mean()
+    nd_means_sems[f'{pip}_sem'] = v.groupby('name').mean().sem()
+pd.DataFrame(nd_means_sems).T.to_csv('fig_3j_plot_data.csv')
 
 # =========================================================================
 # Figure 3k: Normal vs Deviant time resolved decoding

@@ -14,17 +14,16 @@ Archived release: Zenodo DOI (https://doi.org/10.5281/zenodo.24509218)
 | `pupil_response_gen_scripts/` | Build the condition-wise pupil response files used by the figure scripts |
 | `analysis_configs/` | YAML configuration for each analysis |
 | `TimeSeries_clasification/` | Time-series classifier and clustering analyses |
-| `matlab/` | **[to be added]** LDA state-space, cross-condition generalisation (CCGP) and full-space parallelism analyses (Fig. 5j–n, Extended Data Fig. 8) |
+
 | `data/` | Data to run analsysis. can be downloaded from zenodo release
 
 ## 1. System requirements
 
 - **Operating systems tested:** [Windows 11 / Ubuntu 22.04 / macOS 14]
-- **Python** 3.10 with: numpy, panda, scipy 1.12.0, scikit-learn 1.7.2, statsmodels 0.15.0,
-  matplotlib [x.y], pyGAM 0.12.0, MNE-Python 1.11.0, PyTables, PyYAML, joblib, tqdm,
-  tensorflow [x.y] (only for `TimeSeries_clasification/`), and `xdetectioncore` [version; link to repository]
-  **xdetectioncore** Can be installed using pip install xdetectioncore==0.1.7.6_b1
-    (full list with versions in `requirements.txt`)
+- **Python** 3.10. Necessary packages in `requirements.txt`
+  tensorflow (only for `TimeSeries_clasification/`), and `xdetectioncore` [version; link to repository]
+- **xdetectioncore** Can be installed using pip install xdetectioncore==0.1.7.6_b1
+
 - **MATLAB** R2025a with the Statistics and Machine Learning Toolbox (for `matlab/`)
 - Spike sorting (not needed to reproduce figures from processed data): SpikeInterface 0.102.3, Kilosort 4.0.18
 - **Non-standard hardware:** none. A standard desktop computer (≥16 GB RAM) is sufficient.

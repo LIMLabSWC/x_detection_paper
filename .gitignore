@@ -1,1 +1,6 @@
 data/
+*.zip
+*.h5
+*.joblib
+*.pkl
+*.npy

@@ -1,26 +1,35 @@
 import json
+import platform
 from pathlib import Path
+import sys
 
+import joblib
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tck
 
 import numpy as np
 import pandas as pd
 
-from analysis_scripts.pupil_analysis_funcs import PupilCondAnalysis
-
-DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+from pupil_analysis_funcs import PupilCondAnalysis, run_pupil_cond_analysis
+from save_utils import save_stats_to_tex
 from xdetectioncore.io_utils import load_response_dfs
 from xdetectioncore.behaviour import get_all_cond_filts
 from xdetectioncore.plotting import format_axis, plot_shaded_error_ts
 
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+
 if __name__ == '__main__':
 
-    plt.style.use('../figure_stylesheet.mplstyle')
+    plt.style.use('figure_stylesheet.mplstyle')
 
     # Load pre-computed condition response dictionaries
-    A_by_cond_path = DATA_DIR / "pupil_responses" / "fig01_mouse_A_pupil_by_condition.h5"
-    X_by_cond_path = DATA_DIR / "pupil_responses" / "fig01_mouse_X_pupil_by_condition.h5"
+    A_by_cond_path = (
+        DATA_DIR / "pupil_responses" / "fig01_mouse_A_pupil_by_condition.h5"
+    )
+    X_by_cond_path = (
+        DATA_DIR / "pupil_responses" / "fig01_mouse_X_pupil_by_condition.h5"
+    )
 
     A_by_cond = load_response_dfs(A_by_cond_path)
     X_by_cond = load_response_dfs(X_by_cond_path)
@@ -34,7 +43,9 @@ if __name__ == '__main__':
     good_trial_filt = 'n_since_last_Trial_Outcome <=5 '
 
     # Load session lists by condition
-    sesslist_path = DATA_DIR / "session_metadata" / "fig01_sessions_by_analysis.json"
+    sesslist_path = (
+        DATA_DIR / "session_metadata" / "fig01_sessions_by_analysis.json"
+    )
     if sesslist_path.is_file():
         with open(sesslist_path, 'r') as f:
             sesslist_by_cond = json.load(f)
@@ -110,6 +121,7 @@ if __name__ == '__main__':
     rare_freq_condnames = ['frequent', 'rare']
 
     fig_1e_plot_data = {}
+
     for stim_name, stim_by_cond in zip(['A', 'X'], [A_by_cond, X_by_cond]):
         rare_freq_analysis = PupilCondAnalysis(stim_by_cond, rare_freq_condnames,all_rare_freq_sess)
         rare_freq_analysis.plot_ts_by_cond(cond_line_kwargs=rare_freq_line_kwargs)
@@ -118,8 +130,10 @@ if __name__ == '__main__':
         rare_freq_analysis.plots['ts_by_cond'][0].show()
 
         for cond, cond_resps in rare_freq_analysis.by_cond.items():
+            print(cond_resps.groupby('sess').mean().shape)
             fig_1e_plot_data[f'{stim_name}_{cond}_mean'] = cond_resps.groupby('sess').mean().mean()
             fig_1e_plot_data[f'{stim_name}_{cond}_sem'] = cond_resps.groupby('sess').mean().sem()
+        plotted_rare_freq = cond_resps.groupby('sess').mean().index.get_level_values('sess')
 
     pd.DataFrame(fig_1e_plot_data).T.to_csv('fig_1e_plot_data.csv')
 
@@ -160,8 +174,10 @@ if __name__ == '__main__':
         norm_dev_analysis.plots['ts_by_cond'][0].show()
 
         for cond, cond_resps in norm_dev_analysis.by_cond.items():
+            print(cond_resps.groupby('sess').mean().shape)
             fig_1f_plot_data[f'{stim_name}_{cond}_mean'] = cond_resps.groupby('sess').mean().mean()
             fig_1f_plot_data[f'{stim_name}_{cond}_sem'] = cond_resps.groupby('sess').mean().sem()
+            plotted_normdev_sess = cond_resps.groupby('sess').mean().index.get_level_values('sess')
 
     pd.DataFrame(fig_1f_plot_data).T.to_csv('fig_1f_plot_data.csv')
 
@@ -215,6 +231,8 @@ if __name__ == '__main__':
     all_sess_td_df = pd.read_hdf(
         DATA_DIR / "trial_tables" / "fig01_supp_behavior_trials.h5"
     )
+    mice_not_used = ['DO64','DO69','DO70']
+    all_sess_td_df = all_sess_td_df.loc[~all_sess_td_df.index.get_level_values('name').isin(mice_not_used)]
 
     # Ensure good trial filter is defined
     good_trial_filt = 'Stage>=3 & n_since_last_Trial_Outcome <=5'
@@ -246,14 +264,15 @@ if __name__ == '__main__':
     fig_c.set_layout_engine('tight')
     fig_c.show()
 
-    pd.DataFrame(perf_data, columns=['Pattern', 'Non-pattern']).to_csv('fig_1c_pattern_nonpattern_perf.csv', index=True)
+    pd.DataFrame(perf_data,index=all_sess_td_df.index.get_level_values('name').unique(), columns=['Pattern', 'Non-pattern']).to_csv('fig_1c_pattern_nonpattern_perf.csv', index=True)
 
     # -------------------------------------------------------------------------
     # Panel D: Lick rate time-series (Top: licks to X onset, Bottom: licks to pattern onset)
     # -------------------------------------------------------------------------
 
     patt_non_patt_licks_df = pd.read_hdf(
-        DATA_DIR / "behavior" / "fig01_lick_traces_pattern_vs_nonpattern.h5", "df"
+        DATA_DIR / "behavior" / "fig01_lick_traces_pattern_vs_nonpattern.h5",
+        "df",
     )
     patt_non_patt2X_licks_df = pd.read_hdf(
         DATA_DIR / "behavior" / "fig01_lick_traces_pattern_vs_X.h5", "df"
@@ -352,17 +371,19 @@ if __name__ == '__main__':
     X_resps_all = pd.concat([X_resps_unexp, X_resps_exp])
 
     # Extract baseline pre-windows (Pre pattern and Pre X)
-    preA_data = A_resps_all.loc[:, -0.5:0].mean(axis=1)
+    pre_stim_sess_mask = sum([e.to_list() for e in [plotted_rare_freq,plotted_normdev_sess]],[])
+    preA_data = A_resps_all.loc[:, -0.5:-0.01].mean(axis=1)
+    preA_data = preA_data.loc[preA_data.index.get_level_values('sess').isin(pre_stim_sess_mask)]
     preX_data = X_resps_all.loc[:, -0.5:-0.01].mean(axis=1)
+    preX_data = preX_data.loc[preX_data.index.get_level_values('sess').isin(pre_stim_sess_mask)]
 
     # Panel L: Pre pattern boxplot
     fig_1m_plot_data = {}
     fig_l, ax_l = plt.subplots(figsize=(1.5, 1.8))
     for expected_val, pos in zip([1, 0], [0, 1]):
         subset = preA_data.xs(level='expected', key=expected_val) if 'expected' in preA_data.index.names else preA_data[A_resps_all['expected'] == expected_val]
-        ax_l.boxplot(subset, positions=[pos],  **boxplot_kwargs)
-        fig_1m_plot_data[f'A_{expected_val}_mean'] = subset.mean()
-        fig_1m_plot_data[f'A_{expected_val}_sem'] = subset.sem()
+        ax_l.boxplot(subset.groupby('sess').mean(), positions=[pos],  **boxplot_kwargs)
+        fig_1m_plot_data[f'A_{"expected" if expected_val else "unexpected"}'] = subset.groupby('sess').mean()
 
     ax_l.set_xticks([0, 1])
     ax_l.set_xticklabels(['Exp', 'Unexp'])
@@ -376,9 +397,8 @@ if __name__ == '__main__':
     fig_m, ax_m = plt.subplots(figsize=(1.5, 1.8))
     for expected_val, pos in zip([1, 0], [0, 1]):
         subset = preX_data.xs(level='expected', key=expected_val) if 'expected' in preX_data.index.names else preX_data[X_resps_all['expected'] == expected_val]
-        ax_m.boxplot(subset, positions=[pos], **boxplot_kwargs)
-        fig_1m_plot_data[f'X_{expected_val}_mean'] = subset.mean()
-        fig_1m_plot_data[f'X_{expected_val}_sem'] = subset.sem
+        ax_m.boxplot(subset.groupby('sess').mean(), positions=[pos], **boxplot_kwargs)
+        fig_1m_plot_data[f'X_{"expected" if expected_val else "unexpected"}'] = subset.groupby('sess').mean()
 
     ax_m.set_xticks([0, 1])
     ax_m.set_xticklabels(['Exp', 'Unexp'])
@@ -387,6 +407,9 @@ if __name__ == '__main__':
     format_axis(ax_m)
     fig_m.set_layout_engine('tight')
     fig_m.show()
+
+    pd.DataFrame(fig_1m_plot_data).T.to_csv('fig_1m_plot_data.csv', index=True)
+
 
     # =========================================================================
     # Panels O & P: Human Analysis
@@ -437,3 +460,72 @@ if __name__ == '__main__':
             fig_1p_plot_data[f'{stim_name}_{cond}_sem'] = cond_resps.groupby('sess').mean().sem()
 
     pd.DataFrame(fig_1p_plot_data).T.to_csv('fig_1p_human_norm_dev_plot_data.csv', index=True)
+
+    # -------------------------------------------------------------------------
+    # Reaction Time: Rare vs Frequent & Normal vs Deviant
+    # -------------------------------------------------------------------------
+    all_td_df['reaction_time'] = (
+            all_td_df['Trial_End_dt'] - all_td_df['Gap_Time_dt']
+    ).dt.total_seconds()
+
+    rt_trial_filt = f'({good_trial_filt}) & Trial_Outcome == 1'
+
+    rt_comparisons = [
+        (
+            'rare_freq',
+            all_rare_freq_sess,
+            ['frequent', 'rare'],
+            rare_freq_line_kwargs,
+            'fig_1_rt_rare_freq.csv',
+        ),
+        (
+            'norm_dev',
+            norm_dev_sesslist,
+            ['normal', 'deviant_C'],
+            norm_dev_line_kwargs,
+            'fig_1_rt_norm_dev.csv',
+        ),
+    ]
+
+    for comp_name, sess_subset, cond_pair, line_kw, csv_name in rt_comparisons:
+        sub_td = all_td_df.loc[
+            all_td_df.index.get_level_values('sess').isin(sess_subset)
+        ].query(rt_trial_filt)
+
+        rt_by_cond = pd.concat(
+            {
+                cond: sub_td.query(cond_filters[cond])['reaction_time']
+                .groupby('name')
+                .mean()
+                for cond in cond_pair
+            },
+            axis=1,
+        ).dropna()
+
+        fig_rt, ax_rt = plt.subplots(figsize=(1.5, 2))
+        ax_rt.bar(
+            cond_pair,
+            [rt_by_cond[c].mean() for c in cond_pair],
+            ec='black',
+            fc='w',
+            lw=0.5,
+            width=0.4,
+        )
+        for cond in cond_pair:
+            vals = rt_by_cond[cond].values
+            ax_rt.scatter(
+                [cond] * len(vals),
+                vals,
+                edgecolor='none',
+                fc=line_kw[cond]['c'],
+                alpha=0.5,
+            )
+        # for _, row in rt_by_cond.iterrows():
+        #     ax_rt.plot(cond_pair, row[cond_pair].values, lw=0.25, color='gray')
+
+        format_axis(ax_rt)
+        ax_rt.set_ylabel('Reaction time (s)')
+        fig_rt.set_layout_engine('constrained')
+        fig_rt.show()
+
+        rt_by_cond.to_csv(csv_name, index=True)
